@@ -1,10 +1,18 @@
-"""CLI entry point for the read-only GitHub PR review workflow."""
+"""從終端機啟動唯讀 PR 審查工作流，顯示進度並產生 Markdown 報告。"""
 
 import argparse
 import asyncio
+from pathlib import Path
+
+from rich.markdown import Markdown
+from rich.panel import Panel
 
 from src.github_agent import verify_pull_request_access
+from src.progress import ReviewDashboard, set_dashboard
+from src.report import build_markdown_report, save_markdown_report
 from src.workflow import build_workflow
+
+PROJECT_ROOT = Path(__file__).resolve().parent
 
 
 def parse_args() -> argparse.Namespace:
@@ -19,34 +27,52 @@ def parse_args() -> argparse.Namespace:
 
 async def main() -> None:
     args = parse_args()
-    try:
-        # 直接用 MCP 讀一次指定 PR；失敗時不啟動任何 LLM 審查 Node。
-        await verify_pull_request_access(args.repo, args.pr)
-    except RuntimeError as error:
-        print(f"❌ PR 存取檢查失敗：{error}")
-        print("   已停止：不會啟動 LangChain Agent 或後續 LLM 審查。")
-        raise SystemExit(2) from error
+    dashboard = ReviewDashboard()
+    result: dict | None = None
+    failure: str | None = None
 
-    result = await build_workflow().ainvoke(
-        {
-            "repository": args.repo,
-            "pull_number": args.pr,
-            "evidence": "",
-            "findings": [],
-            "risk_level": "LOW",
-            "recommendation": "",
-            "outcome": "",
-        }
+    with dashboard:
+        set_dashboard(dashboard)
+        try:
+            dashboard.update("mcp_access", "running", "直接用 GitHub MCP 讀取指定 PR")
+            await verify_pull_request_access(args.repo, args.pr)
+            dashboard.update("mcp_access", "done", "PR 存取權已確認，不會讓 LLM 猜測")
+
+            result = await build_workflow().ainvoke(
+                {
+                    "repository": args.repo,
+                    "pull_number": args.pr,
+                    "evidence": "",
+                    "findings": [],
+                    "risk_level": "LOW",
+                    "recommendation": "",
+                    "outcome": "",
+                }
+            )
+        except RuntimeError as error:
+            dashboard.update("mcp_access", "failed", "repo、PR 編號或 PAT 無法讀取")
+            failure = str(error)
+        except Exception as error:
+            failure = str(error)
+        finally:
+            set_dashboard(None)
+
+    if failure:
+        dashboard.console.print(f"[bold red]❌ 審查已停止：{failure}[/bold red]")
+        dashboard.console.print("不會輸出空白審查報告；請修正上方失敗的元件後重試。")
+        raise SystemExit(2)
+
+    assert result is not None
+    report_path = save_markdown_report(PROJECT_ROOT, result)
+    report = build_markdown_report(result)
+    dashboard.console.print(
+        Panel.fit(
+            f"報告已存到：{report_path.relative_to(PROJECT_ROOT)}",
+            title="完成",
+            border_style="green",
+        )
     )
-
-    print("\n--- LangChain 蒐集的 PR 證據 ---")
-    print(result["evidence"])
-    print("\n--- LangGraph 平行檢查 ---")
-    print("\n\n".join(result["findings"]))
-    print("\n--- 合併前建議 ---")
-    print(result["recommendation"])
-    print("\n--- 最終路由 ---")
-    print(result["outcome"])
+    dashboard.console.print(Markdown(report))
 
 
 if __name__ == "__main__":

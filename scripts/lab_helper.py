@@ -36,9 +36,18 @@ REPAIR_FILES: dict[str, tuple[str, ...]] = {
     "nodes": ("src/nodes.py",),
     "workflow": ("src/workflow.py",),
     "main": ("main.py",),
+    "dashboard": ("src/progress.py", "src/report.py"),
 }
 # 這個 repository 只放 Agent；被審查的 app 在另一個 PR Lab repository。
-REQUIRED_PATHS = (*AGENT_FILES, "tests", ".env.example", "requirements.txt", "scripts/reference")
+REQUIRED_PATHS = (
+    *AGENT_FILES,
+    "src/progress.py",
+    "src/report.py",
+    "tests",
+    ".env.example",
+    "requirements.txt",
+    "scripts/reference",
+)
 
 
 def ok(message: str) -> None:
@@ -90,7 +99,7 @@ def check_tests() -> None:
     )
     if result.returncode != 0:
         raise RuntimeError("單元測試失敗")
-    ok("calculate_total 測試通過")
+    ok("Agent 單元測試通過")
 
 
 def check_paths() -> None:
@@ -102,7 +111,7 @@ def check_paths() -> None:
 
 
 def check_setup() -> None:
-    for package in ("langchain", "langgraph", "dotenv"):
+    for package in ("langchain", "langgraph", "dotenv", "rich"):
         importlib.import_module(package)
     ok("Python 套件已安裝")
 

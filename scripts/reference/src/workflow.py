@@ -4,6 +4,7 @@ from typing import Literal
 
 from langgraph.graph import END, START, StateGraph
 
+from .progress import update_step
 from .nodes import (
     collect_evidence_node,
     quality_review_node,
@@ -22,10 +23,12 @@ def route_after_recommendation(
 
 
 def human_review_node(_: PullRequestState) -> dict:
+    update_step("route", "done", "HIGH RISK → 人工審查")
     return {"outcome": "需要人工審查：此工具不會自行留言、合併或修改 GitHub 資料。"}
 
 
 def merge_candidate_node(_: PullRequestState) -> dict:
+    update_step("route", "done", "LOW RISK → 可考慮合併")
     return {"outcome": "可考慮合併：仍應由 repository 維護者完成最終確認。"}
 
 

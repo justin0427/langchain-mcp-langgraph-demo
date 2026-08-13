@@ -21,6 +21,7 @@ langchain-mcp-langgraph-demo/
 ├── .gitignore               # 避免 .env、虛擬環境與快取被提交
 ├── requirements.txt          # Python 套件
 ├── main.py                   # 唯一執行入口：接收 --repo 和 --pr
+├── reports/                  # 每次執行產生一份 Markdown 報告（不提交到 Git）
 ├── scripts/
 │   ├── lab_helper.py          # 課堂清空、checkpoint、預檢與修復工具
 │   └── reference/             # 各階段的標準程式碼，供 repair 使用
@@ -30,6 +31,8 @@ langchain-mcp-langgraph-demo/
 │   ├── github_agent.py       # LangChain Agent + 外部 GitHub MCP 連線
 │   ├── nodes.py              # 蒐證、品質、資安、測試、彙整等 Node
 │   └── workflow.py           # StateGraph、Edge、條件分流
+│   ├── progress.py           # 終端機即時狀態面板
+│   └── report.py             # 最終 State 轉成 Markdown 報告
 └── tests/
     └── test_workflow.py      # 不需連 GitHub 的 routing 單元測試
 ```
@@ -40,6 +43,17 @@ langchain-mcp-langgraph-demo/
 2. **從本 repo 的文章開始實作 Agent**：建立虛擬環境、設定 `.env`；老師帶做時才執行 `reset --yes`，再依文章貼回 `src/` 與 `main.py`。
 3. **建立 PR Lab**：開啟 `https://github.com/justin0427/pr-review-lab-starter`，按 **Use this template** 建立 `pr-review-lab-你的名字`。在那個資料夾修改題目、push、開 PR。
 4. **回到本 repo 執行 Agent**：PR 建立後，回到 `langchain-mcp-langgraph-demo-你的名字/`，填入 PR Lab 的 repo 名稱與 PR 編號執行 `run`。
+
+## 執行時會看到什麼？
+
+執行不是靜靜等待。終端機會即時列出每個元件目前的狀態：
+
+- GitHub MCP 是否真的讀得到指定 PR（讀不到便停止，不呼叫 LLM）。
+- LangChain 是否正在蒐集 diff、CI 與變更檔案。
+- LangGraph 的品質、資安、測試影響三個 Node 哪些正在平行處理、哪些已完成。
+- 彙整建議與最後的 HIGH／LOW 分流。
+
+完成後，完整結果會同時以漂亮的 Markdown 顯示在終端機，並存成 `reports/<repo>-pr-<編號>-<時間>.md`。終端機只顯示狀態與格式化報告，不再吐出難讀的原始 Markdown 字串。
 
 ## 設定 Agent
 
