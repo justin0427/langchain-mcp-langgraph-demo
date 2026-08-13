@@ -1,0 +1,44 @@
+"""CLI entry point for the read-only GitHub PR review workflow."""
+
+import argparse
+import asyncio
+
+from src.workflow import build_workflow
+
+
+def parse_args() -> argparse.Namespace:
+    parser = argparse.ArgumentParser(description="Read-only GitHub PR merge-readiness checker")
+    parser.add_argument("--repo", required=True, help="GitHub repository in OWNER/REPO format")
+    parser.add_argument("--pr", required=True, type=int, help="Pull Request number")
+    args = parser.parse_args()
+    if args.repo.count("/") != 1:
+        parser.error("--repo must use OWNER/REPO format")
+    return args
+
+
+async def main() -> None:
+    args = parse_args()
+    result = await build_workflow().ainvoke(
+        {
+            "repository": args.repo,
+            "pull_number": args.pr,
+            "evidence": "",
+            "findings": [],
+            "risk_level": "LOW",
+            "recommendation": "",
+            "outcome": "",
+        }
+    )
+
+    print("\n--- LangChain 蒐集的 PR 證據 ---")
+    print(result["evidence"])
+    print("\n--- LangGraph 平行檢查 ---")
+    print("\n\n".join(result["findings"]))
+    print("\n--- 合併前建議 ---")
+    print(result["recommendation"])
+    print("\n--- 最終路由 ---")
+    print(result["outcome"])
+
+
+if __name__ == "__main__":
+    asyncio.run(main())
