@@ -81,12 +81,14 @@ python scripts/lab_helper.py check ollama
 當 PR Lab 的 PR 已建立，**在本 repo 根目錄**執行：
 
 ```bash
-# macOS / Linux
-python3 scripts/lab_helper.py run --repo OWNER/pr-review-lab-你的名字 --pr PR_NUMBER
+# macOS / Linux：先從自己的 PR 網址複製 OWNER/REPO 與編號
+python3 scripts/lab_helper.py run --repo YOUR_ACCOUNT/YOUR_PR_LAB --pr 3
 
 # Windows PowerShell
-python scripts/lab_helper.py run --repo OWNER/pr-review-lab-你的名字 --pr PR_NUMBER
+python scripts/lab_helper.py run --repo YOUR_ACCOUNT/YOUR_PR_LAB --pr 3
 ```
+
+例如網址是 `https://github.com/justin0427/pr-review-lab-justin/pull/1`，才填 `--repo justin0427/pr-review-lab-justin --pr 1`；不要複製文章中的 `amy` 或 `YOUR_ACCOUNT`。
 
 ## 常見問題
 

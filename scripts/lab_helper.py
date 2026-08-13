@@ -268,7 +268,11 @@ def run_checks(stage: str) -> None:
 
 def run_workflow(repo: str, pull_number: int) -> None:
     if repo.count("/") != 1:
-        raise RuntimeError("--repo 必須是 OWNER/REPO 格式，例如 amy/pr-review-lab-amy")
+        raise RuntimeError("--repo 必須是 OWNER/REPO 格式，例如 justin0427/pr-review-lab-justin")
+    if repo.startswith("OWNER/") or "你的" in repo or "YOUR_" in repo.upper():
+        raise RuntimeError("--repo 仍是範例文字；請從自己的 PR 網址複製 OWNER/REPO。")
+    if pull_number < 1:
+        raise RuntimeError("--pr 必須是大於 0 的 PR 編號；請從自己的 PR 網址取得。")
     print("--- 執行前預檢：路徑、套件、.env、Ollama、程式碼與 GitHub MCP ---")
     run_checks("preflight")
     command = [sys.executable, "main.py", "--repo", repo, "--pr", str(pull_number)]

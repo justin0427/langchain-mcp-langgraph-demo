@@ -62,17 +62,17 @@ python scripts/lab_helper.py check preflight
 PR Lab 已開出 PR 後，從 GitHub URL 找到 repository 與編號，例如：
 
 ```text
-https://github.com/amy/pr-review-lab-amy/pull/3
+https://github.com/YOUR_ACCOUNT/YOUR_PR_LAB/pull/3
 ```
 
 回到 **Agent 專案**根目錄執行：
 
 ```bash
 # macOS / Linux
-python3 scripts/lab_helper.py run --repo amy/pr-review-lab-amy --pr 3
+python3 scripts/lab_helper.py run --repo YOUR_ACCOUNT/YOUR_PR_LAB --pr 3
 
 # Windows PowerShell
-python scripts/lab_helper.py run --repo amy/pr-review-lab-amy --pr 3
+python scripts/lab_helper.py run --repo YOUR_ACCOUNT/YOUR_PR_LAB --pr 3
 ```
 
-不要在 `pr-review-lab-你的名字/` 執行這段指令；那個專案只有被審查的程式與 PR。
+把 URL 中 `github.com/` 後、`/pull/` 前的內容填給 `--repo`，最後的數字填給 `--pr`。不要在 `pr-review-lab-你的名字/` 執行這段指令；那個專案只有被審查的程式與 PR。
