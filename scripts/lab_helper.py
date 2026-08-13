@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import argparse
 import asyncio
+import ast
 import importlib
 import os
 from pathlib import Path
@@ -192,6 +193,21 @@ def check_workflow() -> None:
 
 def check_main() -> None:
     check_syntax("main.py")
+    tree = ast.parse((ROOT / "main.py").read_text(encoding="utf-8"))
+    has_asyncio_run_main_call = any(
+        isinstance(node, ast.Call)
+        and isinstance(node.func, ast.Attribute)
+        and isinstance(node.func.value, ast.Name)
+        and node.func.value.id == "asyncio"
+        and node.func.attr == "run"
+        and bool(node.args)
+        and isinstance(node.args[0], ast.Call)
+        and isinstance(node.args[0].func, ast.Name)
+        and node.args[0].func.id == "main"
+        for node in ast.walk(tree)
+    )
+    if not has_asyncio_run_main_call:
+        raise RuntimeError("main.py 最後一行必須是 asyncio.run(main())，不能漏掉 main() 的括號")
     ok("main.py 語法檢查通過")
 
 
