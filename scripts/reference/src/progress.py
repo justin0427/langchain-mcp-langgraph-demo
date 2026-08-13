@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from collections import OrderedDict
 from contextlib import AbstractContextManager
+from time import monotonic
 
 from rich.console import Console, Group
 from rich.live import Live
@@ -12,12 +13,8 @@ from rich.table import Table
 from rich.text import Text
 
 
-STATUS_STYLE = {
-    "pending": ("○ 等待中", "dim"),
-    "running": ("◐ 處理中", "yellow"),
-    "done": ("✓ 完成", "green"),
-    "failed": ("✗ 失敗", "red"),
-}
+STATUS_STYLE = {"pending": ("○ 等待中", "dim"), "done": ("✓ 完成", "green"), "failed": ("✗ 失敗", "red")}
+SPINNER_FRAMES = ("⠋", "⠙", "⠹", "⠸", "⠼", "⠴", "⠦", "⠧", "⠇", "⠏")
 
 
 class ReviewDashboard(AbstractContextManager["ReviewDashboard"]):
@@ -25,6 +22,8 @@ class ReviewDashboard(AbstractContextManager["ReviewDashboard"]):
 
     def __init__(self) -> None:
         self.console = Console()
+        self.started_at = monotonic()
+        self.frame = 0
         self.steps: OrderedDict[str, tuple[str, str, str]] = OrderedDict(
             [
                 ("mcp_access", ("GitHub MCP：PR 存取檢查", "pending", "尚未驗證")),
@@ -36,7 +35,7 @@ class ReviewDashboard(AbstractContextManager["ReviewDashboard"]):
                 ("route", ("LangGraph Edge：最終分流", "pending", "等待風險判定")),
             ]
         )
-        self.live = Live(self.render(), console=self.console, refresh_per_second=8)
+        self.live = Live(self.render(), console=self.console, screen=True, refresh_per_second=12)
 
     def __enter__(self) -> "ReviewDashboard":
         self.live.start()
@@ -50,16 +49,29 @@ class ReviewDashboard(AbstractContextManager["ReviewDashboard"]):
         self.steps[key] = (label, state, detail)
         self.live.update(self.render())
 
+    def tick(self) -> None:
+        """讓 spinner 與經過秒數持續變化，不會像程式卡住。"""
+        self.frame = (self.frame + 1) % len(SPINNER_FRAMES)
+        self.live.update(self.render())
+
     def render(self) -> Panel:
         table = Table(expand=True, show_header=True, header_style="bold cyan")
         table.add_column("元件", ratio=3)
         table.add_column("狀態", width=12)
         table.add_column("目前動作", ratio=4)
         for label, state, detail in self.steps.values():
-            status, style = STATUS_STYLE[state]
+            if state == "running":
+                status, style = f"{SPINNER_FRAMES[self.frame]} 處理中", "yellow"
+            else:
+                status, style = STATUS_STYLE[state]
             table.add_row(label, Text(status, style=style), detail)
+        elapsed = int(monotonic() - self.started_at)
         return Panel(
-            Group(Text("GitHub PR Review Agent", style="bold white"), table),
+            Group(
+                Text(f"GitHub PR Review Agent  ·  已執行 {elapsed}s", style="bold white"),
+                Text("處理中圖示持續跳動代表程式仍在工作。", style="dim"),
+                table,
+            ),
             border_style="blue",
             title="即時執行狀態",
         )

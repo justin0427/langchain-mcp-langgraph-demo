@@ -65,13 +65,11 @@ async def verify_pull_request_access(repository: str, pull_number: int) -> None:
             "並確認 fine-grained PAT 已選取該 repository 且獲准存取。"
         )
 
-    print(f"✅ GitHub MCP 已確認可讀取 {repository} 的 PR #{pull_number}")
 
 
 async def build_evidence_agent():
     """建立只讀 Agent；它只能使用 GitHub MCP 提供的工具。"""
     tools = await get_github_mcp_tools()
-    print("Discovered read-only GitHub MCP tools:", ", ".join(tool.name for tool in tools))
     return create_agent(
         model=make_model(),
         tools=tools,

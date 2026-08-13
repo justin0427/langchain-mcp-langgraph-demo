@@ -2,6 +2,7 @@
 
 import argparse
 import asyncio
+from contextlib import suppress
 from pathlib import Path
 
 from rich.markdown import Markdown
@@ -34,6 +35,7 @@ async def main() -> None:
 
     with dashboard:
         set_dashboard(dashboard)
+        animation_task = asyncio.create_task(animate_dashboard(dashboard))
         try:
             dashboard.update("mcp_access", "running", "直接用 GitHub MCP 讀取指定 PR")
             await verify_pull_request_access(args.repo, args.pr)
@@ -57,6 +59,9 @@ async def main() -> None:
         except Exception as error:
             failure = str(error)
         finally:
+            animation_task.cancel()
+            with suppress(asyncio.CancelledError):
+                await animation_task
             set_dashboard(None)
 
     if failure:
@@ -75,6 +80,13 @@ async def main() -> None:
         )
     )
     dashboard.console.print(Markdown(report))
+
+
+async def animate_dashboard(dashboard: ReviewDashboard) -> None:
+    """每秒刷新多次，讓學生看得出程式仍在進行。"""
+    while True:
+        dashboard.tick()
+        await asyncio.sleep(0.12)
 
 
 if __name__ == "__main__":
