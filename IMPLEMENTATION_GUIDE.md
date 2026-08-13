@@ -47,6 +47,16 @@ python scripts/lab_helper.py check nodes
 | 6 | `src/workflow.py` | 接 Node 與 Edge 成 LangGraph | `check workflow` |
 | 7 | `main.py` | 接收 PR 參數並印出結果 | `check main` |
 
+六個 Agent 檔案都貼完後，才做一次總檢查；剛執行 `reset --yes` 的中途不要跑它：
+
+```bash
+# macOS / Linux
+python3 scripts/lab_helper.py check preflight
+
+# Windows PowerShell
+python scripts/lab_helper.py check preflight
+```
+
 ## 最後執行的位置
 
 PR Lab 已開出 PR 後，從 GitHub URL 找到 repository 與編號，例如：

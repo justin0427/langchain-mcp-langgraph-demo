@@ -65,6 +65,7 @@ def fail(stage: str, error: Exception, repair_stage: str | None = None) -> None:
     elif isinstance(error, SyntaxError) or "cannot import name" in detail:
         if repair_stage:
             print("   偵測到程式碼可能漏貼、貼錯位置或打字錯誤。")
+            print("   若你剛執行 reset --yes、還在逐段貼程式，這是正常的：先完成本階段再跑 preflight。")
             print(
                 f"   要還原本階段的標準版本，執行："
                 f"{command_name()} scripts/lab_helper.py repair {repair_stage} --yes"
@@ -237,6 +238,7 @@ def run_checks(stage: str) -> None:
     if stage == "all":
         names = tuple(CHECKS)
     elif stage == "preflight":
+        print("ℹ️ preflight 只在六個 Agent 檔案都完成後、執行 PR 審查前使用。")
         names = ("paths", "setup", "env", "ollama", "config", "state", "nodes", "workflow", "main", "mcp")
     else:
         names = (stage,)

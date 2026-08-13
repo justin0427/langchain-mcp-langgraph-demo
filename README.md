@@ -71,12 +71,12 @@ GITHUB_TOKEN=github_pat_你的完整Token貼在這裡
 ```bash
 # macOS / Linux
 python3 scripts/lab_helper.py check ollama
-python3 scripts/lab_helper.py check preflight
 
 # Windows PowerShell
 python scripts/lab_helper.py check ollama
-python scripts/lab_helper.py check preflight
 ```
+
+`check preflight` 是六個 Agent 檔案都完成後、真正執行 PR 審查前才使用的總檢查；若剛執行 `reset --yes`，它一定會因為尚未貼完程式而失敗。
 
 當 PR Lab 的 PR 已建立，**在本 repo 根目錄**執行：
 
