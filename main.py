@@ -3,6 +3,7 @@
 import argparse
 import asyncio
 
+from src.github_agent import verify_pull_request_access
 from src.workflow import build_workflow
 
 
@@ -18,6 +19,14 @@ def parse_args() -> argparse.Namespace:
 
 async def main() -> None:
     args = parse_args()
+    try:
+        # 直接用 MCP 讀一次指定 PR；失敗時不啟動任何 LLM 審查 Node。
+        await verify_pull_request_access(args.repo, args.pr)
+    except RuntimeError as error:
+        print(f"❌ PR 存取檢查失敗：{error}")
+        print("   已停止：不會啟動 LangChain Agent 或後續 LLM 審查。")
+        raise SystemExit(2) from error
+
     result = await build_workflow().ainvoke(
         {
             "repository": args.repo,

@@ -274,7 +274,7 @@ def run_workflow(repo: str, pull_number: int) -> None:
     command = [sys.executable, "main.py", "--repo", repo, "--pr", str(pull_number)]
     result = subprocess.run(command, cwd=ROOT, check=False)
     if result.returncode != 0:
-        print("❌ 完整流程失敗；請先執行 check ollama 或 check mcp，確認模型與 GitHub MCP。")
+        print("❌ 完整流程已停止；請先閱讀上方的 PR 存取、Ollama 或 GitHub MCP 訊息。")
     raise SystemExit(result.returncode)
 
 
