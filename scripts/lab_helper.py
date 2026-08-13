@@ -36,7 +36,8 @@ REPAIR_FILES: dict[str, tuple[str, ...]] = {
     "workflow": ("src/workflow.py",),
     "main": ("main.py",),
 }
-REQUIRED_PATHS = (*AGENT_FILES, "app", "tests", ".env.example", "requirements.txt", "scripts/reference")
+# 這個 repository 只放 Agent；被審查的 app 在另一個 PR Lab repository。
+REQUIRED_PATHS = (*AGENT_FILES, "tests", ".env.example", "requirements.txt", "scripts/reference")
 
 
 def ok(message: str) -> None:
