@@ -263,6 +263,9 @@ def repair_stage(stage: str, confirmed: bool) -> None:
 def run_checks(stage: str) -> None:
     if stage == "all":
         names = tuple(CHECKS)
+    elif stage == "preclass":
+        print("ℹ️ 課前檢查只確認 Python、套件與 Ollama；不會連線 GitHub MCP。")
+        names = ("paths", "setup", "ollama")
     elif stage == "preflight":
         print("ℹ️ preflight 只在六個 Agent 檔案都完成後、執行 PR 審查前使用。")
         names = ("paths", "setup", "env", "ollama", "config", "state", "nodes", "workflow", "main", "mcp")
@@ -313,7 +316,7 @@ def parse_args() -> argparse.Namespace:
     repair.add_argument("--yes", action="store_true", help="確認覆蓋目前程式碼")
 
     check = subparsers.add_parser("check", help="檢查目前實作階段")
-    check.add_argument("stage", choices=(*CHECKS, "all", "preflight"))
+    check.add_argument("stage", choices=(*CHECKS, "all", "preclass", "preflight"))
 
     run = subparsers.add_parser("run", help="執行完整 PR 審查工作流")
     run.add_argument("--repo", required=True, help="GitHub repository，格式為 OWNER/REPO")
