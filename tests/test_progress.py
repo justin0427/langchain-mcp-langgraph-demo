@@ -9,6 +9,19 @@ def render_text(dashboard: ReviewDashboard) -> str:
     return console.export_text()
 
 
+def assert_arrow_centered_above(output: str, label: str) -> None:
+    lines = output.splitlines()
+    label_index = next(index for index, line in enumerate(lines) if label in line)
+    arrow_line = next(
+        lines[index]
+        for index in range(label_index - 1, max(-1, label_index - 4), -1)
+        if "▼" in lines[index]
+    )
+    label_line = lines[label_index]
+    label_center = label_line.index(label) + len(label) // 2
+    assert abs(arrow_line.index("▼") - label_center) <= 1
+
+
 def test_dashboard_renders_complete_graph_and_active_parallel_nodes():
     dashboard = ReviewDashboard()
     dashboard.update("evidence", "done", "蒐證完成")
@@ -26,6 +39,8 @@ def test_dashboard_renders_complete_graph_and_active_parallel_nodes():
     assert "human_review" in output
     assert "merge_candidate" in output
     assert output.count("執行中") >= 3
+    assert_arrow_centered_above(output, "write_recommendation")
+    assert_arrow_centered_above(output, "END")
 
 
 def test_dashboard_marks_unused_branch_as_skipped():

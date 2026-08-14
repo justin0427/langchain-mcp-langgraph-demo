@@ -103,7 +103,8 @@ class ReviewDashboard(AbstractContextManager["ReviewDashboard"]):
             style = "bright_green"
         else:
             style = "grey50"
-        return Align.center(Text(glyph, style=style))
+        # 多行連接線要逐行置中；否則只有一個 ▼ 的第二行會黏在長橫線左側。
+        return Align.center(Text(glyph, style=style, justify="center"))
 
     def _row(self, keys: tuple[str, ...]) -> Table:
         row = Table.grid(expand=True, padding=(0, 1))
