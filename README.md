@@ -46,7 +46,7 @@ langchain-mcp-langgraph-demo/
 
 ## 執行時會看到什麼？
 
-執行不是靜靜等待。終端機會即時列出每個元件目前的狀態：
+執行不是靜靜等待。終端機會畫出完整 LangGraph 流程圖，並即時高亮目前執行的 Node：
 
 - GitHub MCP 是否真的讀得到指定 PR（讀不到便停止，不呼叫 LLM）。
 - LangChain 是否正在蒐集 diff、CI 與變更檔案。

@@ -18,16 +18,26 @@ from .state import PullRequestState
 def route_after_recommendation(
     state: PullRequestState,
 ) -> Literal["human_review", "merge_candidate"]:
-    return "human_review" if state["risk_level"] == "HIGH" else "merge_candidate"
+    if state["risk_level"] == "HIGH":
+        update_step("route", "done", "HIGH RISK → human_review")
+        update_step("human_review", "running", "高風險 PR 等待人工確認")
+        update_step("merge_candidate", "skipped", "本次未走此分支")
+        return "human_review"
+    update_step("route", "done", "LOW RISK → merge_candidate")
+    update_step("human_review", "skipped", "本次未走此分支")
+    update_step("merge_candidate", "running", "低風險 PR 進入合併候選")
+    return "merge_candidate"
 
 
 def human_review_node(_: PullRequestState) -> dict:
-    update_step("route", "done", "HIGH RISK → 人工審查")
+    update_step("human_review", "done", "已送往人工審查")
+    update_step("end", "done", "LangGraph 工作流完成")
     return {"outcome": "需要人工審查：此工具不會自行留言、合併或修改 GitHub 資料。"}
 
 
 def merge_candidate_node(_: PullRequestState) -> dict:
-    update_step("route", "done", "LOW RISK → 可考慮合併")
+    update_step("merge_candidate", "done", "已列為合併候選")
+    update_step("end", "done", "LangGraph 工作流完成")
     return {"outcome": "可考慮合併：仍應由 repository 維護者完成最終確認。"}
 
 

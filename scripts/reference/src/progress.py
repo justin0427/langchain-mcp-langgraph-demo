@@ -6,15 +6,32 @@ from collections import OrderedDict
 from contextlib import AbstractContextManager
 from time import monotonic
 
-from rich.console import Console, Group
+from rich.align import Align
+from rich.console import Console, Group, RenderableType
 from rich.live import Live
 from rich.panel import Panel
 from rich.table import Table
 from rich.text import Text
 
 
-STATUS_STYLE = {"pending": ("○ 等待中", "dim"), "done": ("✓ 完成", "green"), "failed": ("✗ 失敗", "red")}
+STATUS_STYLE = {
+    "pending": ("○ 等待中", "grey50"),
+    "done": ("✓ 完成", "bright_green"),
+    "failed": ("✗ 失敗", "bright_red"),
+    "skipped": ("— 未走此分支", "grey50"),
+}
 SPINNER_FRAMES = ("⠋", "⠙", "⠹", "⠸", "⠼", "⠴", "⠦", "⠧", "⠇", "⠏")
+NODE_LABELS = {
+    "evidence": "collect_evidence",
+    "quality": "quality_review",
+    "security": "security_review",
+    "tests": "test_impact_review",
+    "summary": "write_recommendation",
+    "route": "conditional edge",
+    "human_review": "human_review",
+    "merge_candidate": "merge_candidate",
+    "end": "END",
+}
 
 
 class ReviewDashboard(AbstractContextManager["ReviewDashboard"]):
@@ -33,6 +50,9 @@ class ReviewDashboard(AbstractContextManager["ReviewDashboard"]):
                 ("tests", ("LangGraph Node：測試影響", "pending", "等待證據")),
                 ("summary", ("LangGraph Node：彙整建議", "pending", "等待平行審查")),
                 ("route", ("LangGraph Edge：最終分流", "pending", "等待風險判定")),
+                ("human_review", ("LangGraph Node：人工審查", "pending", "等待條件分流")),
+                ("merge_candidate", ("LangGraph Node：合併候選", "pending", "等待條件分流")),
+                ("end", ("LangGraph：END", "pending", "等待工作流完成")),
             ]
         )
         self.live = Live(self.render(), console=self.console, screen=True, refresh_per_second=12)
@@ -54,26 +74,87 @@ class ReviewDashboard(AbstractContextManager["ReviewDashboard"]):
         self.frame = (self.frame + 1) % len(SPINNER_FRAMES)
         self.live.update(self.render())
 
+    def _state(self, key: str) -> str:
+        return self.steps[key][1]
+
+    def _status(self, state: str) -> tuple[str, str]:
+        if state == "running":
+            return f"{SPINNER_FRAMES[self.frame]} 執行中", "bold bright_yellow"
+        return STATUS_STYLE[state]
+
+    def _node(self, key: str) -> Panel:
+        state = self._state(key)
+        status, style = self._status(state)
+        return Panel(
+            Align.center(Text(NODE_LABELS[key], justify="center", style=style), vertical="middle"),
+            title=status,
+            border_style=style,
+            height=3,
+            padding=(0, 1),
+        )
+
+    def _connector(self, keys: tuple[str, ...], glyph: str) -> Align:
+        states = [self._state(key) for key in keys]
+        if "failed" in states:
+            style = "bright_red"
+        elif "running" in states:
+            style = "bold bright_yellow"
+        elif all(state in {"done", "skipped"} for state in states):
+            style = "bright_green"
+        else:
+            style = "grey50"
+        return Align.center(Text(glyph, style=style))
+
+    def _row(self, keys: tuple[str, ...]) -> Table:
+        row = Table.grid(expand=True, padding=(0, 1))
+        for _ in keys:
+            row.add_column(ratio=1)
+        row.add_row(*(self._node(key) for key in keys))
+        return row
+
+    def _graph(self) -> RenderableType:
+        graph = Table.grid(expand=True, padding=0)
+        graph.add_column(ratio=1)
+        graph.add_row(Align.center(Panel("START", border_style="bright_green", width=22)))
+        graph.add_row(self._connector(("evidence",), "│\n▼"))
+        graph.add_row(Align.center(self._node("evidence")))
+        graph.add_row(self._connector(("quality", "security", "tests"), "┌──────────────┼──────────────┐\n▼              ▼              ▼"))
+        graph.add_row(self._row(("quality", "security", "tests")))
+        graph.add_row(self._connector(("quality", "security", "tests"), "└──────────────┼──────────────┘\n▼"))
+        graph.add_row(Align.center(self._node("summary")))
+        graph.add_row(self._connector(("route",), "│\n▼"))
+        graph.add_row(Align.center(self._node("route")))
+        graph.add_row(self._connector(("human_review", "merge_candidate"), "┌────────────────────┴────────────────────┐\n▼                                         ▼"))
+        graph.add_row(self._row(("human_review", "merge_candidate")))
+        graph.add_row(self._connector(("end",), "└────────────────────┬────────────────────┘\n▼"))
+        graph.add_row(Align.center(self._node("end")))
+        return graph
+
+    def _activity(self) -> Panel:
+        active = [value for value in self.steps.values() if value[1] in {"running", "failed"}]
+        if not active:
+            completed = [value for value in self.steps.values() if value[1] == "done"]
+            active = [completed[-1] if completed else next(iter(self.steps.values()))]
+        lines = Text()
+        for index, (label, state, detail) in enumerate(active):
+            status, style = self._status(state)
+            if index:
+                lines.append("\n")
+            lines.append(f"{status}  {label} — ", style=style)
+            lines.append(detail, style="white")
+        return Panel(lines, title="目前階段", border_style="bright_yellow" if any(item[1] == "running" for item in active) else "blue")
+
     def render(self) -> Panel:
-        table = Table(expand=True, show_header=True, header_style="bold cyan")
-        table.add_column("元件", ratio=3)
-        table.add_column("狀態", width=12)
-        table.add_column("目前動作", ratio=4)
-        for label, state, detail in self.steps.values():
-            if state == "running":
-                status, style = f"{SPINNER_FRAMES[self.frame]} 處理中", "yellow"
-            else:
-                status, style = STATUS_STYLE[state]
-            table.add_row(label, Text(status, style=style), detail)
         elapsed = int(monotonic() - self.started_at)
         return Panel(
             Group(
                 Text(f"GitHub PR Review Agent  ·  已執行 {elapsed}s", style="bold white"),
-                Text("處理中圖示持續跳動代表程式仍在工作。", style="dim"),
-                table,
+                Text("黃色＝目前執行　綠色＝完成　紅色＝失敗　灰色＝等待／未走分支", style="dim"),
+                self._activity(),
+                Panel(self._graph(), title="LangGraph 工作流", border_style="cyan"),
             ),
             border_style="blue",
-            title="即時執行狀態",
+            title="即時 LangGraph 執行狀態",
         )
 
 

@@ -93,7 +93,7 @@ def fail(stage: str, error: Exception, repair_stage: str | None = None) -> None:
 
 def check_tests() -> None:
     result = subprocess.run(
-        [sys.executable, "-m", "unittest", "discover", "-s", "tests"],
+        [sys.executable, "-m", "pytest", "-q"],
         cwd=ROOT,
         check=False,
     )
