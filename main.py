@@ -7,8 +7,10 @@ from pathlib import Path
 
 from rich.markdown import Markdown
 from rich.panel import Panel
+from rich.console import Console
 
 from src.github_agent import verify_pull_request_access
+from src.pr_selector import list_open_pull_requests, select_pull_request
 from src.progress import ReviewDashboard, set_dashboard
 from src.report import build_markdown_report, save_markdown_report
 from src.workflow import build_workflow
@@ -19,7 +21,11 @@ PROJECT_ROOT = Path(__file__).resolve().parent
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="Read-only GitHub PR merge-readiness checker")
     parser.add_argument("--repo", required=True, help="GitHub repository in OWNER/REPO format")
-    parser.add_argument("--pr", required=True, type=int, help="Pull Request number")
+    parser.add_argument(
+        "--pr",
+        type=int,
+        help="Pull Request number；省略時會顯示彩色方向鍵選單",
+    )
     args = parser.parse_args()
     if args.repo.count("/") != 1:
         parser.error("--repo must use OWNER/REPO format")
@@ -28,6 +34,17 @@ def parse_args() -> argparse.Namespace:
 
 async def main() -> None:
     args = parse_args()
+    pull_number = args.pr
+    if pull_number is None:
+        console = Console()
+        try:
+            with console.status("[bold cyan]正在透過 GitHub MCP 讀取開啟中的 PR…"):
+                pull_requests = await list_open_pull_requests(args.repo)
+            pull_number = await select_pull_request(args.repo, pull_requests)
+        except RuntimeError as error:
+            console.print(f"[bold red]❌ 無法選擇 PR：{error}[/bold red]")
+            raise SystemExit(2) from error
+
     dashboard = ReviewDashboard()
     result: dict | None = None
     failure: str | None = None
@@ -36,14 +53,14 @@ async def main() -> None:
         set_dashboard(dashboard)
         animation_task = asyncio.create_task(animate_dashboard(dashboard))
         try:
-            dashboard.update("mcp_access", "running", "直接用 GitHub MCP 讀取指定 PR")
-            await verify_pull_request_access(args.repo, args.pr)
-            dashboard.update("mcp_access", "done", "PR 存取權已確認，不會讓 LLM 猜測")
+            dashboard.update("mcp_access", "running", f"直接用 GitHub MCP 驗證 PR #{pull_number}")
+            await verify_pull_request_access(args.repo, pull_number)
+            dashboard.update("mcp_access", "done", f"PR #{pull_number} 存取權已確認，不會讓 LLM 猜測")
 
             result = await build_workflow().ainvoke(
                 {
                     "repository": args.repo,
-                    "pull_number": args.pr,
+                    "pull_number": pull_number,
                     "evidence": "",
                     "findings": [],
                     "risk_level": "LOW",

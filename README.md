@@ -20,7 +20,7 @@ langchain-mcp-langgraph-demo/
 ├── .env.example             # 要填入的環境變數範本，不放真實 Token
 ├── .gitignore               # 避免 .env、虛擬環境與快取被提交
 ├── requirements.txt          # Python 套件
-├── main.py                   # 唯一執行入口：接收 --repo 和 --pr
+├── main.py                   # 唯一執行入口：接收 --repo，PR 可由終端選單挑選
 ├── reports/                  # 每次執行產生一份 Markdown 報告（不提交到 Git）
 ├── scripts/
 │   ├── lab_helper.py          # 課堂清空、checkpoint、預檢與修復工具
@@ -96,13 +96,13 @@ python scripts/lab_helper.py check ollama
 
 ```bash
 # macOS / Linux：先從自己的 PR 網址複製 OWNER/REPO 與編號
-python3 scripts/lab_helper.py run --repo YOUR_ACCOUNT/YOUR_PR_LAB --pr 3
+python3 scripts/lab_helper.py run --repo YOUR_ACCOUNT/YOUR_PR_LAB
 
 # Windows PowerShell
-python scripts/lab_helper.py run --repo YOUR_ACCOUNT/YOUR_PR_LAB --pr 3
+python scripts/lab_helper.py run --repo YOUR_ACCOUNT/YOUR_PR_LAB
 ```
 
-例如網址是 `https://github.com/justin0427/pr-review-lab-justin/pull/1`，才填 `--repo justin0427/pr-review-lab-justin --pr 1`；不要複製文章中的 `amy` 或 `YOUR_ACCOUNT`。
+程式會透過 GitHub MCP 列出開啟中的 PR；使用 `↑`／`↓` 選擇後按 Enter。CI 或自動化環境仍可加上 `--pr 1` 跳過選單。不要複製文章中的 `amy` 或 `YOUR_ACCOUNT`。
 
 ## 常見問題
 

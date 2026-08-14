@@ -36,13 +36,14 @@ REPAIR_FILES: dict[str, tuple[str, ...]] = {
     "nodes": ("src/nodes.py",),
     "workflow": ("src/workflow.py",),
     "main": ("main.py",),
-    "dashboard": ("src/progress.py", "src/report.py"),
+    "dashboard": ("src/progress.py", "src/report.py", "src/pr_selector.py"),
 }
 # 這個 repository 只放 Agent；被審查的 app 在另一個 PR Lab repository。
 REQUIRED_PATHS = (
     *AGENT_FILES,
     "src/progress.py",
     "src/report.py",
+    "src/pr_selector.py",
     "tests",
     ".env.example",
     "requirements.txt",
@@ -111,7 +112,7 @@ def check_paths() -> None:
 
 
 def check_setup() -> None:
-    for package in ("langchain", "langgraph", "dotenv", "rich"):
+    for package in ("langchain", "langgraph", "dotenv", "rich", "questionary"):
         importlib.import_module(package)
     ok("Python 套件已安裝")
 
@@ -275,16 +276,25 @@ def run_checks(stage: str) -> None:
             fail(label, error, name if name in REPAIR_FILES else None)
 
 
-def run_workflow(repo: str, pull_number: int) -> None:
+def run_workflow(repo: str, pull_number: int | None) -> None:
     if repo.count("/") != 1:
         raise RuntimeError("--repo 必須是 OWNER/REPO 格式，例如 justin0427/pr-review-lab-justin")
     if repo.startswith("OWNER/") or "你的" in repo or "YOUR_" in repo.upper():
         raise RuntimeError("--repo 仍是範例文字；請從自己的 PR 網址複製 OWNER/REPO。")
-    if pull_number < 1:
-        raise RuntimeError("--pr 必須是大於 0 的 PR 編號；請從自己的 PR 網址取得。")
+    if pull_number is not None and pull_number < 1:
+        raise RuntimeError("--pr 必須是大於 0 的 PR 編號。")
     print("--- 執行前預檢：路徑、套件、.env、Ollama、程式碼與 GitHub MCP ---")
     run_checks("preflight")
-    command = [sys.executable, "main.py", "--repo", repo, "--pr", str(pull_number)]
+    if pull_number is None:
+        from src.pr_selector import list_open_pull_requests, select_pull_request
+
+        async def choose_pull_request() -> int:
+            pull_requests = await list_open_pull_requests(repo)
+            return await select_pull_request(repo, pull_requests)
+
+        pull_number = asyncio.run(choose_pull_request())
+    command = [sys.executable, "main.py", "--repo", repo]
+    command.extend(("--pr", str(pull_number)))
     result = subprocess.run(command, cwd=ROOT, check=False)
     if result.returncode != 0:
         print("❌ 完整流程已停止；請先閱讀上方的 PR 存取、Ollama 或 GitHub MCP 訊息。")
@@ -307,7 +317,11 @@ def parse_args() -> argparse.Namespace:
 
     run = subparsers.add_parser("run", help="執行完整 PR 審查工作流")
     run.add_argument("--repo", required=True, help="GitHub repository，格式為 OWNER/REPO")
-    run.add_argument("--pr", required=True, type=int, help="Pull Request 編號")
+    run.add_argument(
+        "--pr",
+        type=int,
+        help="Pull Request 編號；省略時會顯示彩色方向鍵選單",
+    )
     return parser.parse_args()
 
 
