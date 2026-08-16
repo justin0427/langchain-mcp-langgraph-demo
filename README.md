@@ -104,6 +104,16 @@ python scripts/lab_helper.py run --repo YOUR_ACCOUNT/YOUR_PR_LAB
 
 程式會透過 GitHub MCP 列出開啟中的 PR；使用 `↑`／`↓` 選擇後按 Enter。CI 或自動化環境仍可加上 `--pr 1` 跳過選單。不要複製文章中的 `amy` 或 `YOUR_ACCOUNT`。
 
+### Windows 終端機與動畫
+
+請用 **Windows Terminal**、**PowerShell 7** 或 VS Code 的整合終端機執行。它們會顯示完整的即時動畫與高亮流程圖。舊版 Windows PowerShell／cmd 會自動改用一般更新模式，審查仍可正常執行，只是沒有全螢幕效果。
+
+如果方向鍵 PR 選單無法操作，請直接指定編號：
+
+```powershell
+python scripts/lab_helper.py run --repo YOUR_ACCOUNT/YOUR_PR_LAB --pr 1
+```
+
 ## 常見問題
 
 - `Discovered read-only GitHub MCP tools:` 後面沒有工具：確認 PAT、網路與 GitHub MCP URL。

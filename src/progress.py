@@ -34,6 +34,15 @@ NODE_LABELS = {
 }
 
 
+def supports_full_screen(console: Console) -> bool:
+    """只在支援 alternate screen 的終端機使用全螢幕動畫。
+
+    Windows Terminal 與新版 PowerShell 可以使用；舊版 Windows Console 則改用
+    Rich 的一般 Live 模式，避免畫面閃爍、亂碼或結束後看不到輸出。
+    """
+    return bool(console.is_terminal and not getattr(console, "legacy_windows", False))
+
+
 class ReviewDashboard(AbstractContextManager["ReviewDashboard"]):
     """以 Rich Live 在終端機顯示即時 PR 審查狀態。"""
 
@@ -55,7 +64,12 @@ class ReviewDashboard(AbstractContextManager["ReviewDashboard"]):
                 ("end", ("LangGraph：END", "pending", "等待工作流完成")),
             ]
         )
-        self.live = Live(self.render(), console=self.console, screen=True, refresh_per_second=12)
+        self.live = Live(
+            self.render(),
+            console=self.console,
+            screen=supports_full_screen(self.console),
+            refresh_per_second=12,
+        )
 
     def __enter__(self) -> "ReviewDashboard":
         self.live.start()

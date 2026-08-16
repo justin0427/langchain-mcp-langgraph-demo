@@ -1,6 +1,6 @@
 from rich.console import Console
 
-from src.progress import ReviewDashboard
+from src.progress import ReviewDashboard, supports_full_screen
 
 
 def render_text(dashboard: ReviewDashboard) -> str:
@@ -53,3 +53,15 @@ def test_dashboard_marks_unused_branch_as_skipped():
 
     assert "未走此分支" in output
     assert "merge_candidate" in output
+
+
+class FakeConsole:
+    def __init__(self, *, is_terminal: bool, legacy_windows: bool) -> None:
+        self.is_terminal = is_terminal
+        self.legacy_windows = legacy_windows
+
+
+def test_legacy_windows_console_uses_inline_animation_instead_of_full_screen():
+    assert supports_full_screen(FakeConsole(is_terminal=True, legacy_windows=False))
+    assert not supports_full_screen(FakeConsole(is_terminal=True, legacy_windows=True))
+    assert not supports_full_screen(FakeConsole(is_terminal=False, legacy_windows=False))
