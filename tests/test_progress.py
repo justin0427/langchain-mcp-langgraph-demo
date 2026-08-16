@@ -1,6 +1,6 @@
 from rich.console import Console
 
-from src.progress import ReviewDashboard, supports_full_screen
+from src.progress import ReviewDashboard, supports_full_screen, supports_live_animation
 
 
 def render_text(dashboard: ReviewDashboard) -> str:
@@ -56,12 +56,20 @@ def test_dashboard_marks_unused_branch_as_skipped():
 
 
 class FakeConsole:
-    def __init__(self, *, is_terminal: bool, legacy_windows: bool) -> None:
+    def __init__(self, *, is_terminal: bool, legacy_windows: bool, is_interactive: bool = True) -> None:
         self.is_terminal = is_terminal
         self.legacy_windows = legacy_windows
+        self.is_interactive = is_interactive
 
 
 def test_legacy_windows_console_uses_inline_animation_instead_of_full_screen():
     assert supports_full_screen(FakeConsole(is_terminal=True, legacy_windows=False))
     assert not supports_full_screen(FakeConsole(is_terminal=True, legacy_windows=True))
     assert not supports_full_screen(FakeConsole(is_terminal=False, legacy_windows=False))
+
+
+def test_ide_output_panel_cannot_render_live_animation():
+    assert supports_live_animation(FakeConsole(is_terminal=True, legacy_windows=False))
+    assert not supports_live_animation(
+        FakeConsole(is_terminal=False, legacy_windows=False, is_interactive=False)
+    )

@@ -46,6 +46,13 @@ async def main() -> None:
     result: dict | None = None
     failure: str | None = None
 
+    if not dashboard.can_animate:
+        dashboard.console.print(
+            "[bold yellow]⚠️ 目前不是互動式終端機，無法播放即時動畫；"
+            "請改在 Windows Terminal、PowerShell 或 VS Code 的『終端機』執行，"
+            "不要使用 Output／Code Runner 面板。[/bold yellow]"
+        )
+
     with dashboard:
         set_dashboard(dashboard)
         animation_task = asyncio.create_task(animate_dashboard(dashboard))

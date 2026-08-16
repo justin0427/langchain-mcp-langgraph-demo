@@ -106,7 +106,7 @@ python scripts/lab_helper.py run --repo YOUR_ACCOUNT/YOUR_PR_LAB
 
 ### Windows 終端機與動畫
 
-請用 **Windows Terminal**、**PowerShell 7** 或 VS Code 的整合終端機執行。它們會顯示完整的即時動畫與高亮流程圖。舊版 Windows PowerShell／cmd 會自動改用一般更新模式，審查仍可正常執行，只是沒有全螢幕效果。
+請用 **Windows Terminal**、**PowerShell 7** 或 VS Code 的整合**終端機**執行。它們會顯示完整的即時動畫與高亮流程圖。**不要按 VS Code 右上角的 Run Code，也不要在 Output 面板執行**；那不是互動式終端機，只能顯示最後一張靜態畫面。程式現在會在這種情況顯示黃色警告。舊版 Windows PowerShell／cmd 會自動改用一般更新模式，審查仍可正常執行，只是沒有全螢幕效果。
 
 如果方向鍵 PR 選單無法操作，請直接指定編號：
 

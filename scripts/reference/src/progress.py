@@ -43,11 +43,21 @@ def supports_full_screen(console: Console) -> bool:
     return bool(console.is_terminal and not getattr(console, "legacy_windows", False))
 
 
+def supports_live_animation(console: Console) -> bool:
+    """判斷目前輸出位置能否持續重繪畫面。
+
+    VS Code 的 Output 面板、Code Runner 與某些 IDE 主控台不是互動式終端機；
+    它們只能顯示最後一張狀態畫面，無法真的播放 Live 動畫。
+    """
+    return bool(console.is_terminal and getattr(console, "is_interactive", True))
+
+
 class ReviewDashboard(AbstractContextManager["ReviewDashboard"]):
     """以 Rich Live 在終端機顯示即時 PR 審查狀態。"""
 
     def __init__(self) -> None:
         self.console = Console()
+        self.can_animate = supports_live_animation(self.console)
         self.started_at = monotonic()
         self.frame = 0
         self.steps: OrderedDict[str, tuple[str, str, str]] = OrderedDict(
@@ -67,7 +77,7 @@ class ReviewDashboard(AbstractContextManager["ReviewDashboard"]):
         self.live = Live(
             self.render(),
             console=self.console,
-            screen=supports_full_screen(self.console),
+            screen=self.can_animate and supports_full_screen(self.console),
             refresh_per_second=12,
         )
 
