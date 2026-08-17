@@ -70,7 +70,7 @@ def fail(stage: str, error: Exception, repair_stage: str | None = None) -> None:
         print("   Agent 檔案遺失時可執行 repair all --yes；其他檔案遺失請重新從 Template 建立專案。")
     elif "Ollama" in detail:
         print("   Ollama 有問題：先執行 ollama list；若連不上，請開啟 Ollama App 或執行 ollama serve。")
-        print("   模型不存在時，請執行 ollama pull <LLM_MODEL>，再確認 .env 的 LLM_MODEL 名稱。")
+        print("   若模型清單是空的，請自行選擇一個模型後執行 ollama pull <模型名稱>。")
     elif "GITHUB_TOKEN" in detail or "GitHub MCP returned no tools" in detail:
         print("   GitHub MCP 設定或網路有問題：請檢查 .env、PAT 權限、MCP URL 與網路。")
     elif isinstance(error, SyntaxError) or "cannot import name" in detail:
@@ -134,16 +134,17 @@ def check_env() -> None:
 
 
 def check_ollama() -> None:
-    """檢查 Ollama 是否啟動，以及 .env 指定的模型是否已下載。"""
+    """檢查 Ollama 是否連線，以及電腦裡是否至少有一個模型。
+
+    課前不綁定特定模型名稱；學生可使用自己已下載的模型。真正執行
+    Agent 時，才由 .env 的 LLM_MODEL 決定要使用哪一個模型。
+    """
     from dotenv import load_dotenv
 
     env_file = ROOT / ".env"
-    if not env_file.is_file():
-        raise RuntimeError("Ollama 檢查前需要先建立 .env")
-    load_dotenv(env_file, override=True)
-    model = os.environ.get("LLM_MODEL", "")
-    if not model:
-        raise RuntimeError("Ollama 檢查前需要先設定 LLM_MODEL")
+    if env_file.is_file():
+        # 若學生已建立 .env，可沿用其中的自訂 Ollama 位址；但不讀取 LLM_MODEL。
+        load_dotenv(env_file, override=True)
 
     base_url = os.environ.get("OLLAMA_BASE_URL", "http://localhost:11434").rstrip("/")
     try:
@@ -152,13 +153,12 @@ def check_ollama() -> None:
     except (HTTPError, URLError, TimeoutError, OSError) as error:
         raise RuntimeError(f"Ollama 伺服器連不上（{base_url}）：{error}") from error
 
-    installed_models = {item.get("name", "") for item in payload.get("models", [])}
-    if model not in installed_models:
-        available = ", ".join(sorted(installed_models)) or "沒有已下載模型"
-        raise RuntimeError(
-            f"Ollama 找不到 LLM_MODEL={model}；目前可用模型：{available}"
-        )
-    ok(f"Ollama 已啟動，模型 {model} 可使用")
+    installed_models = sorted(
+        item.get("name", "") for item in payload.get("models", []) if item.get("name")
+    )
+    if not installed_models:
+        raise RuntimeError("Ollama 已連線，但目前沒有已下載的模型")
+    ok(f"Ollama 已連線，偵測到 {len(installed_models)} 個可用模型")
 
 
 def import_module(module_name: str, message: str) -> None:

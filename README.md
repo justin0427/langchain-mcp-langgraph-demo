@@ -80,7 +80,7 @@ GITHUB_TOKEN=github_pat_你的完整Token貼在這裡
 
 選短期有效期限（例如 7 或 30 天），不要把 Token 寫進程式碼、截圖或 Git。若 repository 屬於 Organization，PAT 可能需要管理員核准。完整圖文步驟見 [GitHub 官方文件](https://docs.github.com/en/authentication/keeping-your-account-and-data-secure/managing-your-personal-access-tokens)。
 
-接著把 `LLM_MODEL` 改成已安裝且支援 native tool calling 的 Ollama 模型。完成 `.env` 後先檢查：
+`check ollama` 不綁定特定模型名稱：它只確認 Ollama 可連線，且電腦裡至少有一個模型。真正執行 Agent 前，再把 `.env` 的 `LLM_MODEL` 填成你選擇、且支援 native tool calling 的模型。完成 `.env` 後先檢查：
 
 ```bash
 # macOS / Linux
