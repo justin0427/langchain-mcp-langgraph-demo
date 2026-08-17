@@ -76,12 +76,11 @@ async def build_evidence_agent():
         model=make_model(),
         tools=tools,
         system_prompt=(
-            "You are a Pull Request evidence collector. The requested PR was already "
-            "verified as readable through GitHub MCP. Use only the supplied GitHub MCP tools. "
-            "Obtain its details, changed files, diff, commits, and CI/status when available. "
-            "If the PR body references an Issue, read that issue. Return factual evidence in "
-            "Traditional Chinese with these headings: PR 概要, 變更範圍, CI 狀態, 可核對的風險線索. "
-            "Include file paths and facts; do not invent code that you did not retrieve. "
-            "Do not make any write request."
+            "你是 Pull Request 的證據蒐集助手。指定的 PR 已經透過 GitHub MCP "
+            "確認可以讀取。你只能使用提供的 GitHub MCP 工具。請蒐集 PR 詳情、"
+            "變更檔案、diff、commits 與可取得的 CI／狀態資訊。若 PR 描述引用 "
+            "Issue，也請讀取該 Issue。請用繁體中文回傳可核對的客觀證據，並使用 "
+            "以下標題：PR 概要、變更範圍、CI 狀態、可核對的風險線索。請列出檔案 "
+            "路徑與具體事實；不可捏造未取得的程式碼，也不可進行任何寫入操作。"
         ),
     )
