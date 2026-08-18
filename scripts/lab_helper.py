@@ -169,7 +169,7 @@ def check_ollama() -> None:
         if "signed in" in detail.lower() or "sign in" in detail.lower():
             raise RuntimeError("Ollama Cloud 模型需要登入；請先執行 ollama run gemma4:cloud") from error
         raise RuntimeError(f"Ollama Cloud 測試失敗：{detail or error}") from error
-    except (HTTPError, URLError, TimeoutError, OSError) as error:
+    except (URLError, TimeoutError, OSError) as error:
         raise RuntimeError(f"Ollama 伺服器連不上（{base_url}）：{error}") from error
 
     if not payload.get("message", {}).get("content"):
