@@ -12,11 +12,12 @@ import subprocess
 import sys
 from collections.abc import Callable
 from urllib.error import HTTPError, URLError
-from urllib.request import urlopen
+from urllib.request import Request, urlopen
 import json
 
 
 ROOT = Path(__file__).resolve().parent.parent
+CLOUD_MODEL = "gemma4:cloud"
 # 腳本從 scripts/ 執行時，先把專案根目錄加入 import 路徑，才能讀到 src/。
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
@@ -68,9 +69,12 @@ def fail(stage: str, error: Exception, repair_stage: str | None = None) -> None:
     elif isinstance(error, FileNotFoundError):
         print("   專案路徑或檔案不完整：請確認是在 Template 專案中執行，且沒有刪掉檔案。")
         print("   Agent 檔案遺失時可執行 repair all --yes；其他檔案遺失請重新從 Template 建立專案。")
+    elif "signed in to Ollama" in detail or "Cloud 模型需要登入" in detail:
+        print("   Ollama Cloud 尚未登入：執行 ollama run gemma4:cloud。")
+        print("   若瀏覽器沒有自動開啟，請複製終端機顯示的 https://ollama.com/connect?... 網址完成登入，再執行一次相同指令。")
     elif "Ollama" in detail:
         print("   Ollama 有問題：先執行 ollama list；若連不上，請開啟 Ollama App 或執行 ollama serve。")
-        print("   若模型清單是空的，請自行選擇一個模型後執行 ollama pull <模型名稱>。")
+        print("   本課使用雲端模型：請確認網路正常，並完成 ollama run gemma4:cloud 的登入流程。")
     elif "GITHUB_TOKEN" in detail or "GitHub MCP returned no tools" in detail:
         print("   GitHub MCP 設定或網路有問題：請檢查 .env、PAT 權限、MCP URL 與網路。")
     elif isinstance(error, SyntaxError) or "cannot import name" in detail:
@@ -134,31 +138,43 @@ def check_env() -> None:
 
 
 def check_ollama() -> None:
-    """檢查 Ollama 是否連線，以及電腦裡是否至少有一個模型。
-
-    課前不綁定特定模型名稱；學生可使用自己已下載的模型。真正執行
-    Agent 時，才由 .env 的 LLM_MODEL 決定要使用哪一個模型。
-    """
+    """驗證本機 Ollama 可連線，且已登入並可使用本課指定的雲端模型。"""
     from dotenv import load_dotenv
 
     env_file = ROOT / ".env"
     if env_file.is_file():
-        # 若學生已建立 .env，可沿用其中的自訂 Ollama 位址；但不讀取 LLM_MODEL。
+        # 若學生已建立 .env，可沿用其中的自訂 Ollama 位址。
         load_dotenv(env_file, override=True)
 
     base_url = os.environ.get("OLLAMA_BASE_URL", "http://localhost:11434").rstrip("/")
     try:
-        with urlopen(f"{base_url}/api/tags", timeout=5) as response:
+        # 送出一個極短請求，真正確認 Cloud 登入、網路與模型都能使用。
+        request = Request(
+            f"{base_url}/api/chat",
+            data=json.dumps(
+                {
+                    "model": CLOUD_MODEL,
+                    "messages": [{"role": "user", "content": "Reply only: OK"}],
+                    "stream": False,
+                    "options": {"num_predict": 1},
+                }
+            ).encode("utf-8"),
+            headers={"Content-Type": "application/json"},
+            method="POST",
+        )
+        with urlopen(request, timeout=45) as response:
             payload = json.load(response)
+    except HTTPError as error:
+        detail = error.read().decode("utf-8", errors="replace")
+        if "signed in" in detail.lower() or "sign in" in detail.lower():
+            raise RuntimeError("Ollama Cloud 模型需要登入；請先執行 ollama run gemma4:cloud") from error
+        raise RuntimeError(f"Ollama Cloud 測試失敗：{detail or error}") from error
     except (HTTPError, URLError, TimeoutError, OSError) as error:
         raise RuntimeError(f"Ollama 伺服器連不上（{base_url}）：{error}") from error
 
-    installed_models = sorted(
-        item.get("name", "") for item in payload.get("models", []) if item.get("name")
-    )
-    if not installed_models:
-        raise RuntimeError("Ollama 已連線，但目前沒有已下載的模型")
-    ok(f"Ollama 已連線，偵測到 {len(installed_models)} 個可用模型")
+    if not payload.get("message", {}).get("content"):
+        raise RuntimeError("Ollama Cloud 沒有回傳測試結果；請重新執行 ollama run gemma4:cloud")
+    ok("Ollama Cloud 已登入，gemma4:cloud 可使用")
 
 
 def import_module(module_name: str, message: str) -> None:
@@ -264,7 +280,7 @@ def run_checks(stage: str) -> None:
     if stage == "all":
         names = tuple(CHECKS)
     elif stage == "preclass":
-        print("ℹ️ 課前檢查只確認 Python、套件與 Ollama；不會連線 GitHub MCP。")
+        print("ℹ️ 課前檢查會確認 Python、套件與 Ollama Cloud；不會連線 GitHub MCP。")
         names = ("paths", "setup", "ollama")
     elif stage == "preflight":
         print("ℹ️ preflight 只在六個 Agent 檔案都完成後、執行 PR 審查前使用。")

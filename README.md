@@ -80,7 +80,17 @@ GITHUB_TOKEN=github_pat_你的完整Token貼在這裡
 
 選短期有效期限（例如 7 或 30 天），不要把 Token 寫進程式碼、截圖或 Git。若 repository 屬於 Organization，PAT 可能需要管理員核准。完整圖文步驟見 [GitHub 官方文件](https://docs.github.com/en/authentication/keeping-your-account-and-data-secure/managing-your-personal-access-tokens)。
 
-`check ollama` 不綁定特定模型名稱：它只確認 Ollama 可連線，且電腦裡至少有一個模型。真正執行 Agent 前，再把 `.env` 的 `LLM_MODEL` 填成你選擇、且支援 native tool calling 的模型。完成 `.env` 後先檢查：
+本課統一使用 **Ollama Cloud 的 `gemma4:cloud`**（32.7B parameters、256K context）。它不會下載 32.7B 模型到學生電腦，但需要網路與 Ollama 帳號；PR 證據會送往雲端模型處理，因此不是離線／完全本地推論。
+
+先在終端機執行：
+
+```bash
+ollama run gemma4:cloud
+```
+
+第一次會要求登入。瀏覽器通常會自動開啟；若沒有，請複製終端機顯示的 `https://ollama.com/connect?...` 網址到瀏覽器完成登入，**回到終端機後再執行一次** `ollama run gemma4:cloud`。看到 `Connecting to 'gemma4:cloud' on 'ollama.com'` 與 `>>>` 即成功；輸入 `/bye` 離開。
+
+`.env.example` 已預設 `LLM_MODEL=gemma4:cloud`。完成 `.env` 後，`check ollama` 會送出一個極短測試請求，確認本機 Ollama、Cloud 登入與模型都可用：
 
 ```bash
 # macOS / Linux
@@ -117,7 +127,8 @@ python scripts/lab_helper.py run --repo YOUR_ACCOUNT/YOUR_PR_LAB --pr 1
 ## 常見問題
 
 - `Discovered read-only GitHub MCP tools:` 後面沒有工具：確認 PAT、網路與 GitHub MCP URL。
-- 模型回答卻沒查 PR：換成支援 tool calling 的模型，並確認 Ollama 正在執行。
+- 顯示 `You need to be signed in to Ollama to run Cloud models`：執行 `ollama run gemma4:cloud`；若瀏覽器未開啟，複製終端機顯示的 connect 網址完成登入，再執行一次。
+- 模型回答卻沒查 PR：確認 `.env` 仍是 `LLM_MODEL=gemma4:cloud`，並確認 Ollama 正在執行。
 - `Connection refused`：啟動 Ollama，或確認 `.env` 的 `OLLAMA_BASE_URL`。
 - `GitHub MCP` 回傳 401／403：確認 Token 未過期、Resource owner 正確、已選到目標 repository，且 Organization PAT 已核准。
 
